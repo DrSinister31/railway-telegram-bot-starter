@@ -1,44 +1,36 @@
-# app.py
 from flask import Flask, request
-import requests, os
+import requests
+import os
 
 app = Flask(__name__)
 
-# Yahan apna Telegram Bot Token daalna hai
-TELEGRAM_BOT_TOKEN = "8430719482:AAG2jY9ssIFNlLYXGLPnxktKwc9QHV1xbTU"
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 
-# Yahan apna Telegram Chat ID daalna hai
-TELEGRAM_CHAT_ID = "7695071336"
-
-# Yahan apna secret (kisi bhi random string jese 'mysecret123') daalna hai
-WEBHOOK_SECRET = "MackMehrab_2025_secret"
-
-
-def send_telegram(text):
-    """Message bhejne ka function"""
+def send_message(chat_id, text):
+    """Send a message to a Telegram chat"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text}
-    requests.post(url, data=payload)
+    payload = {"chat_id": chat_id, "text": text}
+    requests.post(url, json=payload)
 
-
-@app.route("/webhook", methods=["POST"])
+@app.route('/webhook', methods=['POST'])
 def webhook():
-    """Webhook receive karne ka route"""
-    secret = request.headers.get("X-Webhook-Secret")
-    if secret != WEBHOOK_SECRET:
-        return {"status": "forbidden"}, 403
+    """Handle incoming Telegram updates"""
+    try:
+        update = request.json
+        if 'message' in update:
+            chat_id = update['message']['chat']['id']
+            message = "Hello, I received your message!"
+            send_message(chat_id, message)
+        return "OK", 200
+    except Exception as e:
+        print(f"Error: {e}")
+        return "Error", 500
 
-    data = request.json
-    message = f"📩 Webhook Received:\n{data}"
-    send_telegram(message)
-
-    return {"status": "ok"}, 200
-
-
-@app.route("/")
+@app.route('/')
 def home():
     return "✅ Bot is running!"
 
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8443))
+    app.run(host='0.0.0.0', port=port)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
